@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HC-SR04 Remote</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#111;color:#fff;display:flex;justify-content:center;min-height:100vh;padding:20px}
+.wrap{text-align:center;width:100%;max-width:480px}
+.c{background:#1a1a2e;border-radius:16px;padding:30px;margin-bottom:16px}
+h1{color:#4a6fa5;font-size:0.8rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:20px}
+.n{font-size:5rem;font-weight:bold;line-height:1;transition:color 0.3s}
+.ok{color:#00d2ff}
+.warn{color:#ffd700}
+.danger{color:#ff4757}
+.ux{color:#4a6fa5;font-size:2rem}
+.bb{background:#0f3460;border-radius:13px;height:24px;overflow:hidden;margin:12px 0 8px}
+.bf{height:100%;border-radius:13px;transition:width 0.3s;width:0%}
+.bf.ok{background:#00d2ff}
+.bf.warn{background:#ffd700}
+.bf.danger{background:#ff4757}
+.bq{display:flex;justify-content:space-between;color:#4a6fa5;font-size:0.7rem}
+#cv{background:#0f3460;border-radius:12px;display:block;width:100%;height:auto}
+.st{color:#4a6fa5;font-size:0.8rem;margin-top:16px}
+.dt{display:inline-block;width:8px;height:8px;border-radius:50%;background:#00d2ff;margin-right:6px}
+.g{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:14px}
+.bx{background:#0f3460;border-radius:12px;padding:12px}
+.bv{font-size:1.3rem;font-weight:bold;color:#00d2ff}
+.bl{font-size:0.65rem;color:#4a6fa5;text-transform:uppercase}
+.zr{display:flex;justify-content:center;gap:6px;margin:12px 0 6px}
+.zb{background:#0f3460;border-radius:8px;padding:6px 14px;font-size:0.75rem;color:#4a6fa5;border:1px solid transparent;transition:all 0.3s}
+.zb.act{background:transparent}
+.zb.act.n{color:#ff4757;border-color:#ff4757}
+.zb.act.m{color:#ffd700;border-color:#ffd700}
+.zb.act.f{color:#00d2ff;border-color:#00d2ff}
+.zv{display:flex;justify-content:center;gap:6px;font-size:0.7rem;color:#4a6fa5}
+.zv span{width:33%}
+.pd{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;font-size:0.75rem;color:#4a6fa5;text-transform:uppercase;letter-spacing:1px}
+.pd-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.pd-dot.y{background:#00d2ff;box-shadow:0 0 8px #00d2ff}
+.pd-dot.n{background:#4a6fa5}
+.ts{color:#4a6fa5;font-size:0.65rem;margin-top:10px;word-break:break-all}
+a{color:#4a6fa5}
+@media(max-width:500px){.n{font-size:3.5rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1 style="margin-bottom:16px">HC-SR04 Distance (Remote)</h1>
+<div class="c">
+<div class="n ok" id="d">--<span class="ux"> cm</span></div>
+<div class="bq"><span>0</span><span id="z">--</span><span>400</span></div>
+<div class="bb"><div class="bf ok" id="b"></div></div>
+</div>
+<div class="c">
+<div class="zr">
+<div class="zb" id="zNear">NEAR</div>
+<div class="zb" id="zMid">MID</div>
+<div class="zb" id="zFar">FAR</div>
+</div>
+<div class="zv"><span id="vNear">--</span><span id="vMid">--</span><span id="vFar">--</span></div>
+<div class="pd"><span class="pd-dot n" id="pdDot"></span><span id="pdText">No data</span></div>
+</div>
+<div class="c">
+<div class="g">
+<div class="bx"><div class="bv" id="mn">--</div><div class="bl">Min</div></div>
+<div class="bx"><div class="bv" id="av">--</div><div class="bl">Avg</div></div>
+<div class="bx"><div class="bv" id="mx">--</div><div class="bl">Max</div></div>
+</div>
+</div>
+<div class="c" style="padding:15px">
+<canvas id="cv"></canvas>
+</div>
+<div class="st"><span class="dt" id="dot"></span><span id="m">Loading...</span></div>
+<div class="ts"><a href="https://thingspeak.com/channels/3388472" target="_blank">thingspeak.com/channels/3388472</a></div>
+</div>
+<script>
+(function(){
+var cid=3388472;
+var cv=document.getElementById('cv'),cx=cv.getContext('2d');
+var W=cv.width=cv.clientWidth*2,H=cv.height=240;
+var fh=[],mn=Infinity,mx=-Infinity,su=0,ct=0;
+function dr(){
+cx.clearRect(0,0,W,H);if(fh.length<2)return;
+var hi=Math.max.apply(null,fh.concat([50]));
+var lo=Math.min.apply(null,fh.concat([0]));
+var ra=hi-lo||1;
+var py=function(v){return H-(v-lo)/ra*(H-20)-10};
+cx.strokeStyle='#00d2ff';cx.lineWidth=3;cx.beginPath();
+for(var i=1;i<fh.length;i++){var xi=i/(fh.length-1)*W,yi=py(fh[i]);i==1?cx.moveTo(xi,yi):cx.lineTo(xi,yi)}cx.stroke();
+cx.fillStyle='rgba(0,210,255,0.08)';cx.lineTo(W,H);cx.lineTo(0,H);cx.closePath();cx.fill();
+cx.fillStyle='#4a6fa5';cx.font='16px Arial';cx.textAlign='right';
+cx.fillText(Math.round(hi)+'cm',W-8,22);cx.fillText(Math.round(lo)+'cm',W-8,H-6);
+}
+function getZoneName(d){
+if(d<2||d>400)return"clear";
+if(d<50)return"near";
+if(d<150)return"mid";
+return"far";
+}
+function fetchData(){
+var x=new XMLHttpRequest();
+x.open('GET','https://api.thingspeak.com/channels/'+cid+'/feeds.json?results=40',true);
+x.onload=function(){
+try{
+var r=JSON.parse(x.responseText);
+if(!r.feeds||r.feeds.length==0){document.getElementById('m').textContent='No data yet';return;}
+var feeds=r.feeds;
+var last=feeds[feeds.length-1];
+var v=parseFloat(last.field1);
+if(isNaN(v)){document.getElementById('m').textContent='Waiting for data...';return;}
+var raw=parseFloat(last.field2)||v;
+var zone=parseInt(last.field3)||0;
+var znames=['clear','near','mid','far'];
+var zoneName=znames[zone]||getZoneName(v);
+var e=document.getElementById('d');
+e.innerHTML=v.toFixed(1)+'<span class="ux"> cm</span>';
+var zs='ok',zl='IN RANGE';
+if(v<10){zs='danger';zl='TOO CLOSE'}else if(v<50){zs='warn';zl='NEAR'}else if(v>300){zs='danger';zl='TOO FAR'}
+e.className='n '+zs;
+document.getElementById('b').style.width=Math.min(v/4,100)+'%';
+document.getElementById('b').className='bf '+zs;
+document.getElementById('z').textContent=zl;
+fh=[];
+feeds.forEach(function(f){
+var fv=parseFloat(f.field1);
+if(!isNaN(fv))fh.push(fv);
+});
+dr();
+mn=Infinity;mx=-Infinity;su=0;ct=0;
+fh.forEach(function(fv){
+if(fv<mn)mn=fv;if(fv>mx)mx=fv;su+=fv;ct++;
+});
+document.getElementById('mn').textContent=mn.toFixed(1);
+document.getElementById('mx').textContent=mx.toFixed(1);
+document.getElementById('av').textContent=ct>0?(su/ct).toFixed(1):'--';
+var zn=document.getElementById('zNear'),zm=document.getElementById('zMid'),zf=document.getElementById('zFar');
+zn.className='zb';zm.className='zb';zf.className='zb';
+if(zoneName==='near')zn.className='zb act n';else if(zoneName==='mid')zm.className='zb act m';else if(zoneName==='far')zf.className='zb act f';
+var lastNear=-1,lastMid=-1,lastFar=-1;
+feeds.forEach(function(f){
+var fv=parseFloat(f.field1);if(isNaN(fv))return;
+var fz=znames[parseInt(f.field3)||0]||getZoneName(fv);
+if(fz==='near')lastNear=fv;else if(fz==='mid')lastMid=fv;else if(fz==='far')lastFar=fv;
+});
+document.getElementById('vNear').textContent=lastNear>0?lastNear.toFixed(1)+'cm':'--';
+document.getElementById('vMid').textContent=lastMid>0?lastMid.toFixed(1)+'cm':'--';
+document.getElementById('vFar').textContent=lastFar>0?lastFar.toFixed(1)+'cm':'--';
+var present=zoneName!=='clear';
+var pd=document.getElementById('pdDot'),pt=document.getElementById('pdText');
+if(present){pd.className='pd-dot y';pt.textContent='Object detected in '+zoneName.toUpperCase()+' zone'}
+else{pd.className='pd-dot n';pt.textContent='No object detected'}
+var t=new Date(last.created_at);
+document.getElementById('m').textContent='Updated: '+t.toLocaleTimeString();
+}catch(e){document.getElementById('m').textContent='Error: '+e.message;}
+};
+x.onerror=function(){document.getElementById('m').textContent='Network error'};
+x.send();
+}
+setInterval(fetchData,15000);
+fetchData();
+})();
+</script>
+</body>
+</html>
